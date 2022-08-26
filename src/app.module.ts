@@ -12,4 +12,8 @@ import { JogadoresModule } from './jogadores/jogadores.module';
   controllers: [],
   providers: [],
 })
+
+
+
+// Language: typescript
 export class AppModule { }
