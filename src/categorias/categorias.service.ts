@@ -86,8 +86,10 @@ export class CategoriasService {
       throw new BadRequestException(`Categoria ${categoria} não cadastrada!`);
     }
 
-    if(jogadorCadastradoNaCategoria.length > 0) {
-      throw new BadRequestException(`Jogador ${idJogador} já cadastrado na categoria ${categoria}!`);
+    if (jogadorCadastradoNaCategoria.length > 0) {
+      throw new BadRequestException(
+        `Jogador ${idJogador} já cadastrado na categoria ${categoria}!`,
+      );
     }
 
     categoriaEncontrada.jogadores.push(idJogador);
