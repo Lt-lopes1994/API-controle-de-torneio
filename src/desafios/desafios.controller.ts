@@ -1,68 +1,56 @@
-import {
-  Body,
-  Controller,
-  Delete,
-  Get,
-  Logger,
-  Param,
-  Post,
-  Put,
-  Query,
-  UsePipes,
-  ValidationPipe,
-} from '@nestjs/common';
-import { DesafiosService } from './desafios.service';
-import { AtribuirDesafioPartidaDto } from './dto/atribuirPartida.dto';
-import { AtualizarDesafioDto } from './dto/atualizarDesafio.dto';
-import { CriarDesafioDto } from './dto/criarDesafio.dto';
-import { Desafio } from './interface/desafios.interface';
-import { DesafioStatusPipe } from './pipes/validacaoStatus.pipe';
+import { Controller, Post, UsePipes, ValidationPipe, Body, Get, Query, Put, Param, Delete, Logger } from '@nestjs/common';
+import { DesafiosService } from './desafios.service'
+import { CriarDesafioDto } from './dtos/criar-desafio.dto'
+import { Desafio } from './interfaces/desafio.interface';
+import { DesafioStatusValidacaoPipe } from './pipes/desafio-status-validation.pipe';
+import { AtribuirDesafioPartidaDto } from './dtos/atribuir-desafio-partida.dto';
+import { AtualizarDesafioDto } from './dtos/atualizar-desafio.dto';
+
+/*
+Desafio
+*/
 
 @Controller('api/v1/desafios')
 export class DesafiosController {
-  constructor(private readonly desafioService: DesafiosService) {}
-  private readonly logger = new Logger(DesafiosController.name);
 
-  @Post()
-  @UsePipes(ValidationPipe)
-  async criarDesafio(
-    @Body() criarDesafioDto: CriarDesafioDto,
-  ): Promise<Desafio> {
-    this.logger.log(`Criar desafio: ${JSON.stringify(criarDesafioDto)}`);
-    return await this.desafioService.criarDesafio(criarDesafioDto);
-  }
+    constructor(private readonly desafiosService: DesafiosService){}
 
-  @Get()
-  async consultarDesafios(
-    @Query('idJogador') _id: string,
-  ): Promise<Array<Desafio>> {
-    return _id
-      ? await this.desafioService.consultarDesafioDeUmJogador(_id)
-      : await this.desafioService.consultarDesafios();
-  }
+    private readonly logger = new Logger(DesafiosController.name)
 
-  @Put('/:desafio')
-  async atualizarDesafio(
-    @Body(DesafioStatusPipe) atualizarDesafioDto: AtualizarDesafioDto,
-    @Param('desafio') _id: string,
-  ): Promise<void> {
-    await this.desafioService.atualizarDesafio(_id, atualizarDesafioDto);
-  }
+    @Post()
+    @UsePipes(ValidationPipe)
+    async criarDesafio(
+        @Body() criarDesafioDto: CriarDesafioDto): Promise<Desafio> {
+            this.logger.log(`criarDesafioDto: ${JSON.stringify(criarDesafioDto)}`)
+            return await this.desafiosService.criarDesafio(criarDesafioDto)
+    }
+    
+    @Get()
+    async consultarDesafios(
+        @Query('idJogador') _id: string): Promise<Array<Desafio>> {
+        return _id ? await this.desafiosService.consultarDesafiosDeUmJogador(_id) 
+        : await this.desafiosService.consultarTodosDesafios()
+    }
 
-  @Post('/:desafio/partida')
-  async atribuirDesafioPartida(
-    @Body(ValidationPipe) atribuirDesafioPartidaDto: AtribuirDesafioPartidaDto,
-    @Param('desafio') _id: string,
-  ): Promise<void> {
-    return await this.desafioService.atribuirDesafioPartida(
-      _id,
-      atribuirDesafioPartidaDto,
-    );
-  }
+    @Put('/:desafio')
+    async atualizarDesafio(
+        @Body(DesafioStatusValidacaoPipe) atualizarDesafioDto: AtualizarDesafioDto,
+        @Param('desafio') _id: string): Promise<void> {
+            await this.desafiosService.atualizarDesafio(_id, atualizarDesafioDto)
 
-  @Delete('/:_id')
-  async deletarDesafio(@Param('_id') _id: string): Promise<void> {
-    this.logger.log(`Deletar desafio: ${_id}`);
-    await this.desafioService.deletarDesafio(_id);
-  }
+        }    
+
+   @Post('/:desafio/partida/')
+   async atribuirDesafioPartida(
+       @Body(ValidationPipe) atribuirDesafioPartidaDto: AtribuirDesafioPartidaDto,
+       @Param('desafio') _id: string): Promise<void> {
+        return await this.desafiosService.atribuirDesafioPartida(_id, atribuirDesafioPartidaDto)           
+   }
+
+   @Delete('/:_id')
+   async deletarDesafio(
+       @Param('_id') _id: string): Promise<void> {
+           this.desafiosService.deletarDesafio(_id)
+    }
+
 }

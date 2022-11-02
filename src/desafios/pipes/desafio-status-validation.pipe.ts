@@ -1,18 +1,18 @@
 import { PipeTransform, BadRequestException } from '@nestjs/common';
-import { DesafioStatus } from '../interface/desafioStatus.enum';
+import { DesafioStatus } from '../interfaces/desafio-status.enum';
 
-export class DesafioStatusPipe implements PipeTransform {
+export class DesafioStatusValidacaoPipe implements PipeTransform {
   readonly statusPermitidos = [
     DesafioStatus.ACEITO,
     DesafioStatus.NEGADO,
-    DesafioStatus.CANCELADO,
+    DesafioStatus.CANCELADO
   ];
 
   transform(value: any) {
     const status = value.status.toUpperCase();
 
     if (!this.ehStatusValido(status)) {
-      throw new BadRequestException(`${status} não é um status válido`);
+      throw new BadRequestException(`${status} é um status inválido`);
     }
 
     return value;
@@ -20,6 +20,7 @@ export class DesafioStatusPipe implements PipeTransform {
 
   private ehStatusValido(status: any) {
     const idx = this.statusPermitidos.indexOf(status);
+    // -1 se o elemento não for encontrado
     return idx !== -1;
   }
 }

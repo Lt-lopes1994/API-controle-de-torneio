@@ -1,121 +1,124 @@
-import {
-  BadRequestException,
-  Injectable,
-  NotFoundException,
-} from '@nestjs/common';
+import { Injectable, BadRequestException, NotFoundException, Logger, InternalServerErrorException } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
+import { Categoria } from './interfaces/categoria.interface';
 import { Model } from 'mongoose';
+import { CriarCategoriaDto } from './dtos/criar-categoria.dto';
+import { AtualizarCategoriaDto } from './dtos/atualizar-categoria.dto'
 import { JogadoresService } from 'src/jogadores/jogadores.service';
-import { AtualizarCategoriaDto } from './dto/atualizarCategoria.dto';
-import { CriarCategoriaDto } from './dto/criar-categoria.dto';
-import { Categoria } from './interface/categoria.interface';
 
 @Injectable()
 export class CategoriasService {
-  constructor(
-    @InjectModel('Categoria') private readonly categoriaModel: Model<Categoria>,
-    private readonly jogadoresService: JogadoresService,
-  ) {}
 
-  async criarCategoria(
-    criarCategoriaDto: CriarCategoriaDto,
-  ): Promise<Categoria> {
-    const { categoria } = criarCategoriaDto;
+    constructor(
+        @InjectModel('Categoria') private readonly categoriaModel: Model<Categoria>,
+        private readonly jogadoresService: JogadoresService) {}
 
-    const categoriaEncontrada = await this.categoriaModel
-      .findOne({ categoria })
-      .exec();
+        private logger = new Logger(CategoriasService.name);
 
-    if (categoriaEncontrada) {
-      throw new BadRequestException(`Categoria ${categoria} já cadastrada!`);
+    async criarCategoria(criarCategoriaDto: CriarCategoriaDto): Promise<Categoria> {
+
+        const { categoria } = criarCategoriaDto
+
+        const categoriaEncotrada = await this.categoriaModel.findOne({categoria}).exec();
+
+        if (categoriaEncotrada) {
+            throw new BadRequestException(`Categoria ${categoria} já cadastrada!`)
+        }
+
+        const categoriaCriada = new this.categoriaModel(criarCategoriaDto)
+        return await categoriaCriada.save()
+
     }
 
-    const categoriaCriada = new this.categoriaModel(criarCategoriaDto);
-    return await categoriaCriada.save();
-  }
-
-  async consultarTodasCategorias(): Promise<Array<Categoria>> {
-    return await this.categoriaModel.find().populate('jogadores').exec();
-  }
-
-  async consultarCategoriaPeloId(categoria: string): Promise<Categoria> {
-    const categoriaEncontrada = await this.categoriaModel
-      .findOne()
-      .populate('jogadores')
-      .exec();
-
-    if (!categoriaEncontrada) {
-      throw new NotFoundException(`Categoria ${categoria} não encontrada!`);
+    async consultarTodasCategorias(): Promise<Array<Categoria>> {
+        return await this.categoriaModel.find().populate("jogadores").exec()
     }
 
-    return categoriaEncontrada;
-  }
+    async consultarCategoriaPeloId(categoria: string): Promise<Categoria> {
 
-  async consultarCategoriaDoJogador(idJogador: any): Promise<Categoria> {
-    const jogadores = await this.jogadoresService.consultarJogadores();
+        const categoriaEncontrada = await this.categoriaModel.findOne({categoria}).exec()
 
-    const filtroDeJogadores = jogadores.filter(
-      (jogador) => jogador._id == idJogador,
-    );
+        if(!categoriaEncontrada) {
+            throw new NotFoundException(`Categoria ${categoria} não encontrada!`)
+        }
 
-    if (filtroDeJogadores.length === 0) {
-      throw new BadRequestException(
-        `O id ${idJogador} não é um jogador. Verifique a digitação.`,
-      );
+        return categoriaEncontrada
+
     }
 
-    return await this.categoriaModel
-      .findOne()
-      .where('jogadores')
-      .in(idJogador)
-      .exec();
-  }
+    async consultarCategoriaDoJogador(idJogador: any): Promise<Categoria> {
 
-  async atualizarCategoria(
-    categoria: string,
-    atualizarCategoriaDto: AtualizarCategoriaDto,
-  ): Promise<void> {
-    const categoriaEncontrada = await this.categoriaModel
-      .findOne({ categoria })
-      .exec();
+        /*
+        Desafio
+        Escopo da exceção realocado para o próprio Categorias Service
+        Verificar se o jogador informado já se encontra cadastrado
+        */
 
-    if (!categoriaEncontrada) {
-      throw new NotFoundException(`Categoria ${categoria} não encontrada!`);
+       //await this.jogadoresService.consultarJogadorPeloId(idJogador)                                   
+
+       const jogadores = await this.jogadoresService.consultarTodosJogadores()
+
+       const jogadorFilter = jogadores.filter( jogador => jogador._id == idJogador )
+
+       if (jogadorFilter.length == 0) {
+           throw new BadRequestException(`O id ${idJogador} não é um jogador!`)
+       }
+
+        return await this.categoriaModel.findOne().where('jogadores').in(idJogador).exec() 
+
     }
 
-    await this.categoriaModel
-      .findOneAndUpdate({ categoria }, { $set: atualizarCategoriaDto })
-      .exec();
-  }
+    async atualizarCategoria(categoria: string, atualizarCategoriaDto: AtualizarCategoriaDto): Promise<void> {
+   
+        const categoriaEncontrada = await this.categoriaModel.findOne({categoria}).exec()
 
-  async atribuirCategoriaJogador(params: string[]): Promise<void> {
-    const categoria = params['categoria'];
-    const idJogador = params['idJogador'];
+        if (!categoriaEncontrada) {
+            throw new NotFoundException(`Categoria ${categoria} não encontrada!`)
+        }
 
-    const jogadorCadastradoNaCategoria = await this.categoriaModel
-      .find({ categoria })
-      .where('jogadores')
-      .in(idJogador)
-      .exec();
-
-    const categoriaEncontrada = await this.categoriaModel
-      .findOne({ categoria })
-      .exec();
-
-    if (!categoriaEncontrada) {
-      throw new BadRequestException(`Categoria ${categoria} não cadastrada!`);
+        await this.categoriaModel.findOneAndUpdate({categoria},{$set: atualizarCategoriaDto}).exec()
+        
     }
 
-    if (jogadorCadastradoNaCategoria.length > 0) {
-      throw new BadRequestException(
-        `Jogador ${idJogador} já cadastrado na categoria ${categoria}!`,
-      );
+    async atribuirCategoriaJogador(params: string[]): Promise<void> {
+
+        const categoria = params['categoria']
+        const idJogador = params['idJogador']
+
+        const categoriaEncontrada = await this.categoriaModel.findOne({categoria}).exec()
+        const jogadorJaCadastradoCategoria = 
+                                await this.categoriaModel
+                                                    .findOne()
+                                                    .where('jogadores')
+                                                    .in(idJogador)
+                                                    .exec() 
+
+        /*
+        Desafio
+        Escopo da exceção realocado para o próprio Categorias Service
+        Verificar se o jogador informado já se encontra cadastrado
+        */                                            
+
+        //await this.jogadoresService.consultarJogadorPeloId(idJogador)
+       
+        const jogadores = await this.jogadoresService.consultarTodosJogadores()
+
+        const jogadorFilter = jogadores.filter( jogador => jogador._id == idJogador )
+
+        if (jogadorFilter.length == 0) {
+            throw new BadRequestException(`O id ${idJogador} não é um jogador!`)
+        }
+        
+        if (!categoriaEncontrada) {
+            throw new BadRequestException(`Categoria ${categoria} não cadastrada!`)
+        }
+
+        if(jogadorJaCadastradoCategoria) {
+            throw new BadRequestException(`Jogador ${idJogador} já cadastrado na Categoria ${jogadorJaCadastradoCategoria.categoria}!`)
+        }
+
+        categoriaEncontrada.jogadores.push(idJogador)
+        await this.categoriaModel.findOneAndUpdate({categoria},{$set: categoriaEncontrada}).exec() 
     }
 
-    categoriaEncontrada.jogadores.push(idJogador);
-
-    await this.categoriaModel
-      .findOneAndUpdate({ categoria }, { $set: categoriaEncontrada })
-      .exec();
-  }
 }
